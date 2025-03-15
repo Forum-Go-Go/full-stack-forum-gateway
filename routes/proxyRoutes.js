@@ -23,7 +23,7 @@ const services = {
 
 // Log service configurations
 console.log(
-  '-- API Gateway starting with the following service configurations:'
+  '🚀 API Gateway starting with the following service configurations:'
 )
 Object.entries(services).forEach(([route, target]) => {
   console.log(`  ${route} -> ${target}`)
@@ -37,7 +37,7 @@ router.use(express.urlencoded({ extended: true }))
 Object.entries(services).forEach(([route, target]) => {
   if (target) {
     target = removeTrailingSlash(target)
-    console.log(`-- Setting up proxy for ${route} -> ${target}`)
+    console.log(`🔧 Setting up proxy for ${route} -> ${target}`)
 
     // Apply JWT middleware for all routes except '/auth'
     if (route !== '/auth') {
@@ -53,16 +53,37 @@ Object.entries(services).forEach(([route, target]) => {
         pathRewrite: route === '/auth' ? {} : { [`^${route}`]: route }, // Keep route paths intact
         onProxyReq: (proxyReq, req, res) => {
           console.log(
-            `-- [Proxy] Forwarding ${req.method} ${req.originalUrl} -> ${target}${req.path}`
+            `🔄 [Proxy] Forwarding ${req.method} ${req.originalUrl} -> ${target}${req.path}`
           )
 
-          // Ensure Authorization Header is forwarded correctly
+          // ✅ Forward Authorization Header
           if (req.headers['authorization']) {
             proxyReq.setHeader('Authorization', req.headers['authorization'])
-            console.log(`-- Forwarding Authorization header`)
+            console.log(`🛂 Forwarding Authorization header`)
           }
 
-          // Forward request body for POST, PUT, PATCH requests
+          // ✅ Prevent invalid headers
+          if (req.user) {
+            proxyReq.setHeader('X-User-ID', req.user.id)
+            proxyReq.setHeader('X-User-Role', req.user.role)
+
+            // Convert `verified` from 0/1 to "true"/"false" for consistent microservice handling
+            proxyReq.setHeader(
+              'X-User-Verified',
+              req.user.verified ? 'true' : 'false'
+            )
+
+            console.log(
+              `📝 Injecting user info -> ID: ${req.user.id}, Role: ${
+                req.user.role
+              }, Verified: ${req.user.verified ? 'true' : 'false'}`
+            )
+          } else {
+            // Default header if no user object exists
+            proxyReq.setHeader('X-User-Verified', 'false')
+          }
+
+          // ✅ Forward request body for POST, PUT, PATCH requests
           if (
             req.body &&
             (req.method === 'POST' ||
@@ -76,13 +97,13 @@ Object.entries(services).forEach(([route, target]) => {
           }
         },
         onError: (err, req, res) => {
-          console.error(`-- Proxy error for ${req.originalUrl}:`, err.message)
+          console.error(`❌ Proxy error for ${req.originalUrl}:`, err.message)
           res.status(500).json({ message: 'Proxy error', error: err.message })
         }
       })
     )
 
-    console.log(`-- Proxy set up for ${route} -> ${target}`)
+    console.log(`✅ Proxy set up for ${route} -> ${target}`)
   }
 })
 
