@@ -39,9 +39,16 @@ Object.entries(services).forEach(([route, target]) => {
     target = removeTrailingSlash(target)
     console.log(`🔧 Setting up proxy for ${route} -> ${target}`)
 
-    // Apply JWT middleware for all routes except '/auth'
+    // Apply JWT middleware for all routes except '/auth' and '/users/register'
     if (route !== '/auth') {
-      router.use(route, jwtMiddleware)
+      router.use(route, (req, res, next) => {
+        if (req.originalUrl.startsWith('/users/register')) {
+          console.log('🛑 Skipping JWT for user registration')
+          next()
+        } else {
+          jwtMiddleware(req, res, next)
+        }
+      })
       console.log(`🔐 Applied JWT middleware for: ${route}`)
     }
 
@@ -66,8 +73,6 @@ Object.entries(services).forEach(([route, target]) => {
           if (req.user) {
             proxyReq.setHeader('X-User-ID', req.user.id)
             proxyReq.setHeader('X-User-Role', req.user.role)
-
-            // Convert `verified` from 0/1 to "true"/"false" for consistent microservice handling
             proxyReq.setHeader(
               'X-User-Verified',
               req.user.verified ? 'true' : 'false'
