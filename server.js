@@ -6,7 +6,7 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5009;
+const PORT = process.env.PORT;
 
 // CORS
 app.use(cors());
@@ -25,24 +25,26 @@ const services = {
 // Create proxy
 Object.entries(services).forEach(([route, target]) => {
   if (target) {
-    app.use(route, createProxyMiddleware({ target, changeOrigin: true,
+    app.use(route, createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      logLevel: "debug",
+      pathRewrite: (path, req) => {
+        const rewrittenPath = path.replace(new RegExp(`^${route}`), ""); // **去掉 /users, /posts 等前缀**
+        console.log(`🔄 Proxying: ${req.method} ${path} -> ${rewrittenPath} @ ${target}`);
+        return rewrittenPath;
+      },
       onProxyReq: (proxyReq, req, res) => {
-    console.log(`🔄 Forwarding ${req.method} ${req.originalUrl} -> ${proxyReq.getHeader('host')}${proxyReq.path}`);
-  },
-  onError: (err, req, res) => {
-    console.error(`Proxy error for ${req.originalUrl}:`, err.message);
-    res.status(500).json({ message: "Proxy error", error: err.message });
-  }}));
-    console.log(`🔄 Proxy set for ${route} -> ${target}`);
+        console.log(`🛠️ Forwarding ${req.method} ${req.originalUrl} -> ${proxyReq.getHeader('host')}${proxyReq.path}`);
+      },
+      onError: (err, req, res) => {
+        console.error(`❌ Proxy error for ${req.originalUrl}:`, err.message);
+        res.status(500).json({ message: "Proxy error", error: err.message });
+      }
+    }));
+    console.log(`✅ Proxy set for ${route} -> ${target}`);
   }
 });
-
-// user service forward
-app.use("/users", createProxyMiddleware({
-  target: "http://localhost:5001",
-  changeOrigin: true,
-  pathRewrite: {"^/users": ""},
-}));
 
 // Healthy check
 app.get("/", (req, res) => {
