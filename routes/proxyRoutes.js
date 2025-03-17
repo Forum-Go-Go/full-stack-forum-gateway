@@ -12,6 +12,7 @@ const removeTrailingSlash = url => url.replace(/\/$/, '')
 // Define downstream services with environment variables
 const services = {
   '/users': process.env.USER_SERVICE_URL, // User Service
+  '/admin': process.env.USER_SERVICE_URL, // User Service (Admin & Super Admin)
   '/posts': process.env.POST_SERVICE_URL, // Post Service
   '/replies': process.env.REPLY_SERVICE_URL, // Reply Service
   '/history': process.env.HISTORY_SERVICE_URL, // History Service
