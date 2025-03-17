@@ -89,16 +89,17 @@ Object.entries(services).forEach(([route, target]) => {
           }
 
           // ✅ Forward request body for POST, PUT, PATCH requests
-          if (
-            req.body &&
-            (req.method === 'POST' ||
-              req.method === 'PUT' ||
-              req.method === 'PATCH')
-          ) {
-            let bodyData = JSON.stringify(req.body)
-            proxyReq.setHeader('Content-Type', 'application/json')
-            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
-            proxyReq.write(bodyData)
+          // check if request body is JSON (some pass form-data type)
+          const contentType = req.headers['content-type'] || ''
+          if (req.body &&(req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+            if (contentType.includes('application/json')){
+              let bodyData = JSON.stringify(req.body)
+              proxyReq.setHeader('Content-Type', 'application/json')
+              proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+              proxyReq.write(bodyData)
+            } else {
+              console.log(`🔄 Skipping JSON conversion for multipart/form-data`)
+            }
           }
         },
         onError: (err, req, res) => {
