@@ -40,15 +40,21 @@ Object.entries(services).forEach(([route, target]) => {
     target = removeTrailingSlash(target)
     console.log(`🔧 Setting up proxy for ${route} -> ${target}`)
 
-    // Apply JWT middleware for all routes except '/auth' and '/users/register'
+    // Apply JWT middleware for all routes except specific ones
     if (route !== '/auth') {
       router.use(route, (req, res, next) => {
-        if (req.originalUrl.startsWith('/users/register')) {
-          console.log('🛑 Skipping JWT for user registration')
-          next()
-        } else {
-          jwtMiddleware(req, res, next)
+        if (
+          req.originalUrl.startsWith('/users/register') || // ✅ Allow user registration without JWT
+          (req.method === 'POST' && req.originalUrl.startsWith('/messages')) || // ✅ Allow creating messages without JWT
+          (req.method === 'PUT' && req.originalUrl.match(/^\/messages\/\d+$/)) // ✅ Allow updating messages without JWT
+        ) {
+          console.log(
+            `🛑 Skipping JWT middleware for: ${req.method} ${req.originalUrl}`
+          )
+          return next()
         }
+
+        jwtMiddleware(req, res, next)
       })
       console.log(`🔐 Applied JWT middleware for: ${route}`)
     }
@@ -76,8 +82,8 @@ Object.entries(services).forEach(([route, target]) => {
             proxyReq.setHeader('X-User-Role', req.user.role)
             proxyReq.setHeader(
               'X-User-Verified',
-              req.user.verified === 1 ? 'true' : 'false'
-            );
+              req.user.verified ? 'true' : 'false'
+            )
 
             console.log(
               `📝 Injecting user info -> ID: ${req.user.id}, Role: ${
@@ -90,10 +96,14 @@ Object.entries(services).forEach(([route, target]) => {
           }
 
           // ✅ Forward request body for POST, PUT, PATCH requests
-          // check if request body is JSON (some pass form-data type)
           const contentType = req.headers['content-type'] || ''
-          if (req.body &&(req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
-            if (contentType.includes('application/json')){
+          if (
+            req.body &&
+            (req.method === 'POST' ||
+              req.method === 'PUT' ||
+              req.method === 'PATCH')
+          ) {
+            if (contentType.includes('application/json')) {
               let bodyData = JSON.stringify(req.body)
               proxyReq.setHeader('Content-Type', 'application/json')
               proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
