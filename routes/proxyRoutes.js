@@ -76,8 +76,8 @@ Object.entries(services).forEach(([route, target]) => {
             proxyReq.setHeader('X-User-Role', req.user.role)
             proxyReq.setHeader(
               'X-User-Verified',
-              req.user.verified ? 'true' : 'false'
-            )
+              req.user.verified === 1 ? 'true' : 'false'
+            );
 
             console.log(
               `📝 Injecting user info -> ID: ${req.user.id}, Role: ${
