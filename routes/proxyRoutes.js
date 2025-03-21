@@ -23,9 +23,7 @@ const services = {
 }
 
 // Log service configurations
-console.log(
-  '🚀 API Gateway starting with the following service configurations:'
-)
+console.log('API Gateway starting with the following service configurations:')
 Object.entries(services).forEach(([route, target]) => {
   console.log(`  ${route} -> ${target}`)
 })
@@ -38,25 +36,25 @@ router.use(express.urlencoded({ extended: true }))
 Object.entries(services).forEach(([route, target]) => {
   if (target) {
     target = removeTrailingSlash(target)
-    console.log(`🔧 Setting up proxy for ${route} -> ${target}`)
+    console.log(`Setting up proxy for ${route} -> ${target}`)
 
     // Apply JWT middleware for all routes except specific ones
     if (route !== '/auth') {
       router.use(route, (req, res, next) => {
         if (
-          req.originalUrl.startsWith('/users/register') || // ✅ Allow user registration without JWT
-          (req.method === 'POST' && req.originalUrl.startsWith('/messages')) || // ✅ Allow creating messages without JWT
-          (req.method === 'PUT' && req.originalUrl.match(/^\/messages\/\d+$/)) // ✅ Allow updating messages without JWT
+          req.originalUrl.startsWith('/users/register') || // Allow user registration without JWT
+          (req.method === 'POST' && req.originalUrl.startsWith('/messages')) || // Allow creating messages without JWT
+          (req.method === 'PUT' && req.originalUrl.match(/^\/messages\/\d+$/)) // Allow updating messages without JWT
         ) {
           console.log(
-            `🛑 Skipping JWT middleware for: ${req.method} ${req.originalUrl}`
+            `Skipping JWT middleware for: ${req.method} ${req.originalUrl}`
           )
           return next()
         }
 
         jwtMiddleware(req, res, next)
       })
-      console.log(`🔐 Applied JWT middleware for: ${route}`)
+      console.log(`Applied JWT middleware for: ${route}`)
     }
 
     router.use(
@@ -67,16 +65,16 @@ Object.entries(services).forEach(([route, target]) => {
         pathRewrite: route === '/auth' ? {} : { [`^${route}`]: route }, // Keep route paths intact
         onProxyReq: (proxyReq, req, res) => {
           console.log(
-            `🔄 [Proxy] Forwarding ${req.method} ${req.originalUrl} -> ${target}${req.path}`
+            `[Proxy] Forwarding ${req.method} ${req.originalUrl} -> ${target}${req.path}`
           )
 
-          // ✅ Forward Authorization Header
+          // Forward Authorization Header
           if (req.headers['authorization']) {
             proxyReq.setHeader('Authorization', req.headers['authorization'])
-            console.log(`🛂 Forwarding Authorization header`)
+            console.log(`Forwarding Authorization header`)
           }
 
-          // ✅ Prevent invalid headers
+          // Prevent invalid headers
           if (req.user) {
             proxyReq.setHeader('X-User-ID', req.user.id)
             proxyReq.setHeader('X-User-Role', req.user.role)
@@ -86,7 +84,7 @@ Object.entries(services).forEach(([route, target]) => {
             )
 
             console.log(
-              `📝 Injecting user info -> ID: ${req.user.id}, Role: ${
+              `Injecting user info -> ID: ${req.user.id}, Role: ${
                 req.user.role
               }, Verified: ${req.user.verified ? 'true' : 'false'}`
             )
@@ -95,7 +93,7 @@ Object.entries(services).forEach(([route, target]) => {
             proxyReq.setHeader('X-User-Verified', 'false')
           }
 
-          // ✅ Forward request body for POST, PUT, PATCH requests
+          // Forward request body for POST, PUT, PATCH requests
           const contentType = req.headers['content-type'] || ''
           if (
             req.body &&
@@ -109,18 +107,18 @@ Object.entries(services).forEach(([route, target]) => {
               proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
               proxyReq.write(bodyData)
             } else {
-              console.log(`🔄 Skipping JSON conversion for multipart/form-data`)
+              console.log(`Skipping JSON conversion for multipart/form-data`)
             }
           }
         },
         onError: (err, req, res) => {
-          console.error(`❌ Proxy error for ${req.originalUrl}:`, err.message)
+          console.error(`Proxy error for ${req.originalUrl}:`, err.message)
           res.status(500).json({ message: 'Proxy error', error: err.message })
         }
       })
     )
 
-    console.log(`✅ Proxy set up for ${route} -> ${target}`)
+    console.log(`Proxy set up for ${route} -> ${target}`)
   }
 })
 

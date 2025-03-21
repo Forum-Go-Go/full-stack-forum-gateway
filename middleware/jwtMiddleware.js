@@ -18,7 +18,7 @@ const jwtMiddleware = (req, res, next) => {
     { algorithms: [process.env.JWT_ALGORITHM] },
     (err, decoded) => {
       if (err) {
-        console.error('❌ [JWT Middleware] Invalid or expired token.')
+        console.error('[JWT Middleware] Invalid or expired token.')
         return res.status(401).json({ error: 'Invalid or expired token.' })
       }
 
@@ -30,7 +30,7 @@ const jwtMiddleware = (req, res, next) => {
       }
 
       console.log(
-        `🛂 [JWT Middleware] Authenticated -> ID: ${req.user.id}, Role: ${req.user.role}, Verified: ${req.user.verified}`
+        `[JWT Middleware] Authenticated -> ID: ${req.user.id}, Role: ${req.user.role}, Verified: ${req.user.verified}`
       )
 
       next()
